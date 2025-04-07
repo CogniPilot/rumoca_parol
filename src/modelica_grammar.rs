@@ -50,11 +50,11 @@ impl TryFrom<&modelica_grammar_trait::StoredDefinition> for ir::ast::StoredDefin
         ast: &modelica_grammar_trait::StoredDefinition,
     ) -> std::result::Result<Self, Self::Error> {
         let mut def = ir::ast::StoredDefinition {
-            class_list: IndexMap::new(),
+            classes: IndexMap::new(),
             ..Default::default()
         };
         for class in &ast.stored_definition_list {
-            def.class_list.insert(
+            def.classes.insert(
                 class.class_definition.name.text.clone(),
                 class.class_definition.clone(),
             );
@@ -116,6 +116,8 @@ impl TryFrom<&modelica_grammar_trait::ClassDefinition> for ir::ast::ClassDefinit
                         Ok(ir::ast::ClassDefinition {
                             name: spec.name.clone(),
                             extends: spec.composition.extends.clone(),
+                            classes: spec.composition.classes.clone(),
+                            imports: spec.composition.imports.clone(),
                             equations: spec.composition.equations.clone(),
                             algorithms: spec.composition.algorithms.clone(),
                             initial_equations: spec.composition.initial_equations.clone(),
@@ -150,6 +152,8 @@ impl TryFrom<&modelica_grammar_trait::ClassDefinition> for ir::ast::ClassDefinit
 #[allow(unused)]
 pub struct Composition {
     pub extends: Vec<ir::ast::Extend>,
+    pub imports: Vec<String>,
+    pub classes: IndexMap<String, ir::ast::ClassDefinition>,
     pub components: IndexMap<String, ir::ast::Component>,
     pub equations: Vec<ir::ast::Equation>,
     pub initial_equations: Vec<ir::ast::Equation>,
@@ -168,6 +172,8 @@ impl TryFrom<&modelica_grammar_trait::Composition> for Composition {
         };
 
         comp.components = ast.element_list.components.clone();
+        comp.classes = ast.element_list.classes.clone();
+        comp.imports = ast.element_list.imports.clone();
         comp.extends = ast.element_list.extends.clone();
 
         for comp_list in &ast.composition_list {
@@ -210,8 +216,9 @@ impl TryFrom<&modelica_grammar_trait::Composition> for Composition {
 #[derive(Debug, Default, Clone)]
 #[allow(unused)]
 pub struct ElementList {
+    pub classes: IndexMap<String, ir::ast::ClassDefinition>,
     pub components: IndexMap<String, ir::ast::Component>,
-    pub imports: Vec<ir::ast::Token>,
+    pub imports: Vec<String>,
     pub extends: Vec<ir::ast::Extend>,
 }
 
@@ -229,8 +236,11 @@ impl TryFrom<&modelica_grammar_trait::ElementList> for ElementList {
             match &elem_list.element {
                 modelica_grammar_trait::Element::ElementDefinition(edef) => {
                     match &edef.element_definition.element_definition_group {
-                        modelica_grammar_trait::ElementDefinitionGroup::ClassDefinition(_class) => {
-                            todo!("class definition")
+                        modelica_grammar_trait::ElementDefinitionGroup::ClassDefinition(class) => {
+                            def.classes.insert(
+                                class.class_definition.name.text.clone(),
+                                class.class_definition.clone(),
+                            );
                         }
                         modelica_grammar_trait::ElementDefinitionGroup::ComponentClause(clause) => {
                             let connection =
@@ -360,8 +370,16 @@ impl TryFrom<&modelica_grammar_trait::ElementList> for ElementList {
                         }
                     }
                 }
-                modelica_grammar_trait::Element::ImportClause(..) => {
-                    todo!("import clause")
+                modelica_grammar_trait::Element::ImportClause(clause) => {
+                    match &clause.import_clause.import_clause_group {
+                        modelica_grammar_trait::ImportClauseGroup::ImportStatement(import) => {
+                            def.imports.push(import.import_statement.name.to_string());
+                            // todo, handle optional group
+                        }
+                        modelica_grammar_trait::ImportClauseGroup::RenamingImport(..) => {
+                            todo!("renaming import")
+                        }
+                    }
                 }
                 modelica_grammar_trait::Element::ExtendsClause(clause) => {
                     if let Some(_opt) = &clause.extends_clause.extends_clause_opt {

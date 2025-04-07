@@ -24,29 +24,14 @@ use crate::ir::visitor::Visitable;
 use crate::ir::visitors::scope_pusher::ScopePusher;
 use crate::ir::visitors::sub_comp_namer::SubCompNamer;
 use anyhow::Result;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexSet;
 
-pub fn flatten(def: &ir::ast::StoredDefinition) -> Result<ir::ast::ClassDefinition> {
-    // flatten the syntax tree
-    let mut count = 0;
-    let mut main_class_name = String::new();
-    let mut class_dict = IndexMap::new();
-
-    // find all class definitions
-    for (class_name, class) in &def.class_list {
-        if count == 0 {
-            main_class_name = class.name.text.clone();
-        } else {
-            class_dict.insert(class_name.clone(), class.clone());
-        }
-        count += 1;
-    }
-
+pub fn flatten(
+    def: &ir::ast::StoredDefinition,
+    model_class: &str,
+) -> Result<ir::ast::ClassDefinition> {
     // get main class
-    let main_class = def
-        .class_list
-        .get(&main_class_name)
-        .expect("Main class not found");
+    let main_class = def.classes.get(model_class).expect("Main class not found");
 
     // create flat class
     let mut fclass = main_class.clone();
@@ -54,7 +39,8 @@ pub fn flatten(def: &ir::ast::StoredDefinition) -> Result<ir::ast::ClassDefiniti
     //  handle extend clauses
     for extend in &main_class.extends {
         let class_name = extend.comp.to_string();
-        let class = class_dict
+        let class = def
+            .classes
             .get(&class_name)
             .expect(&format!("Class for extend '{}' not found", class_name));
 
@@ -85,14 +71,14 @@ pub fn flatten(def: &ir::ast::StoredDefinition) -> Result<ir::ast::ClassDefiniti
             "tan".to_string(),
         ]),
         symbols: IndexSet::new(),
-        comp: main_class_name.clone(),
+        comp: model_class.to_string(),
     };
 
     // for each component in the main class
     for (comp_name, comp) in &main_class.components {
         // if the the component type is a class
-        if class_dict.contains_key(&comp.type_name.to_string()) {
-            let comp_class = class_dict.get(&comp.type_name.to_string()).unwrap();
+        if def.classes.contains_key(&comp.type_name.to_string()) {
+            let comp_class = def.classes.get(&comp.type_name.to_string()).unwrap();
 
             // add equation from component to flat class
             for eq in &comp_class.equations {

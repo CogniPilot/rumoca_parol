@@ -98,7 +98,7 @@ impl Debug for Name {
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 #[allow(unused)]
 pub struct StoredDefinition {
-    pub class_list: IndexMap<String, ClassDefinition>,
+    pub classes: IndexMap<String, ClassDefinition>,
     pub within: Option<Name>,
 }
 
@@ -143,8 +143,8 @@ pub struct ClassDefinition {
     pub name: Token,
     pub encapsulated: bool,
     pub extends: Vec<Extend>,
-    //pub imports: Vec<Import>,
-    //pub classes: IndexMap<String, ClassDefinition>,
+    pub imports: Vec<String>,
+    pub classes: IndexMap<String, ClassDefinition>,
     pub components: IndexMap<String, Component>,
     pub equations: Vec<Equation>,
     pub initial_equations: Vec<Equation>,

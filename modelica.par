@@ -490,7 +490,15 @@ element_replaceable_definition
 //✅    )
 //✅    description
 import_clause
-    : import ( ident '='^ name | name [ '.*' | '.' ( '*' | '{'^ import_list '}'^ ) ] ) description
+    : import^ ( renaming_import | import_statement ) description
+    ;
+
+renaming_import
+    : ident '='^ name
+    ;
+
+import_statement
+    : name [ '.*' | '.' ( '*' | '{' import_list '}' ) ]
     ;
 
 //✅ import-list :

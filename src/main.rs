@@ -52,6 +52,10 @@ struct Args {
     #[arg(name = "MODELICA_FILE")]
     model_file: String,
 
+    /// Modelica class
+    #[arg(name = "MODELICA_CLASS")]
+    model_class: String,
+
     /// Verbose output
     #[arg(short, long, default_value_t = false)]
     verbose: bool,
@@ -84,7 +88,7 @@ fn main() -> Result<()> {
             }
 
             // flatten tree
-            let mut fclass = flatten(&def)?;
+            let mut fclass = flatten(&def, &args.model_class)?;
             if args.verbose {
                 println!("{:#?}", fclass);
             }

@@ -66,7 +66,7 @@ pub trait Visitable {
 impl Visitable for ir::ast::StoredDefinition {
     fn accept<V: Visitor>(&mut self, visitor: &mut V) {
         visitor.enter_stored_definition(self);
-        for (_name, class) in &mut self.class_list {
+        for (_name, class) in &mut self.classes {
             class.accept(visitor);
         }
         visitor.exit_stored_definition(self);
