@@ -37,6 +37,7 @@ use parol_runtime::{Report, log::debug};
 use rumoca::modelica_grammar::ModelicaGrammar;
 use rumoca::modelica_parser::parse;
 use rumoca::{dae, ir::create_dae::create_dae, ir::flatten::flatten};
+use std::path::Path;
 use std::{fs, time::Instant};
 
 use anyhow::{Context, Result};
@@ -69,9 +70,9 @@ fn main() -> Result<()> {
     debug!("env logger started");
     let args = Args::parse();
 
-    let file_name = args.model_file.clone();
-    let input = fs::read_to_string(file_name.clone())
-        .with_context(|| format!("Can't read file {}", file_name))?;
+    let file_name = Path::new(&args.model_file);
+    let input = fs::read_to_string(file_name)
+        .with_context(|| format!("Can't read file {:?}", file_name))?;
 
     let mut modelica_grammar = ModelicaGrammar::new();
     let now = Instant::now();
@@ -85,6 +86,24 @@ fn main() -> Result<()> {
             if args.verbose {
                 println!("Parsing took {} milliseconds.", elapsed_time.as_millis());
                 println!("Success!\n{:#?}", def);
+            }
+
+            // check that only one class is present in the file and that it matches the file name
+            if def.classes.len() > 1 {
+                anyhow::bail!(
+                    "Multiple classes found in the file. Please provide a single class name matching the file name."
+                );
+            }
+            let base_name = Path::new(file_name)
+                .file_stem() // Gets the file name without the extension
+                .and_then(|stem| stem.to_str()) // Converts it to a &str
+                .unwrap_or(""); // Handles the case where the file name is invalid
+            if def.classes[0].name.text != base_name {
+                anyhow::bail!(
+                    "Class name '{}' does not match the file name '{}'. Please provide a single class name matching the file name.",
+                    def.classes[0].name.text,
+                    base_name
+                );
             }
 
             // flatten tree

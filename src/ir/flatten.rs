@@ -30,8 +30,32 @@ pub fn flatten(
     def: &ir::ast::StoredDefinition,
     model_class: &str,
 ) -> Result<ir::ast::ClassDefinition> {
-    // get main class
-    let main_class = def.classes.get(model_class).expect("Main class not found");
+    let parts: Vec<&str> = model_class.split('.').collect();
+    if parts.len() < 1 {
+        panic!(
+            "Model class name '{}' Please provide a valid class name.",
+            model_class
+        );
+    }
+
+    let mut part_class = def.classes.get(parts[0]).unwrap_or_else(|| {
+        panic!(
+        "Class '{}' not found in the provided definition. Ensure that the class name is correct and exists in the IR.",
+        parts[0]
+        )
+    });
+
+    for i in 1..parts.len() {
+        part_class = part_class.classes.get(parts[i]).unwrap_or_else(|| {
+            panic!(
+            "Class '{}' not found in the provided definition. Ensure that the class name is correct and exists in the IR.",
+            parts[0]
+            )
+        });
+    }
+
+    let mut main_class = part_class.clone();
+    main_class.name.text = parts.join("_");
 
     // create flat class
     let mut fclass = main_class.clone();
